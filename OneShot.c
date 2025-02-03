@@ -2,9 +2,9 @@
 #include "pico/stdlib.h"
 
 #define PIN_BUTTON 5
-#define PIN_LED_BLUE 11
-#define PIN_LED_RED 12
-#define PIN_LED_GREEN 13
+#define PIN_LED_BLUE 12
+#define PIN_LED_RED 13
+#define PIN_LED_GREEN 11
 
 void inicializaPinos(){
     stdio_init_all();
