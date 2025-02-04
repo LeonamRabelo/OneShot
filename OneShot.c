@@ -7,6 +7,7 @@
 #define PIN_LED_RED 13
 
 volatile bool fila_leds_ativa = false;
+volatile int estado = 0;
 
 void inicializaPinos(){
     stdio_init_all();
@@ -30,55 +31,55 @@ void inicializaPinos(){
     gpio_put(PIN_LED_RED, 0);
 }
 
-bool turn_off_callback(struct repeating_timer *t){
-static int estado = 0;
-
-if (estado == 0) {
+int64_t turn_off_callback(alarm_id_t id, void *user_data){
+if(estado == 0){
     gpio_put(PIN_LED_BLUE, 0);
     estado++;
-}else if (estado == 1) {
+    add_alarm_in_ms(3000, turn_off_callback, NULL, false);  //Agenda nova chamada para desligar o segundo led
+}else if(estado == 1){
     gpio_put(PIN_LED_RED, 0);
     estado++;
-}else if (estado == 2) {
+    add_alarm_in_ms(3000, turn_off_callback, NULL, false);
+}else if(estado == 2){
     gpio_put(PIN_LED_GREEN, 0);
     fila_leds_ativa = false;
     estado = 0;
-    return false;  //Para o temporizador
 }
-return true;
+return 0;
 }
 
-void start_led_sequence() {
-if(fila_leds_ativa) return;  //Evita múltiplos acionamentos
+void iniciar_fila_leds(){
+if(fila_leds_ativa){
+    return;  //Evita múltiplos acionamentos
+}
 
 fila_leds_ativa = true;
 gpio_put(PIN_LED_BLUE, 1);
 gpio_put(PIN_LED_RED, 1);
 gpio_put(PIN_LED_GREEN, 1);
 
-struct repeating_timer timer;
-add_repeating_timer_ms(3000, turn_off_callback, NULL, &timer);
-
+//Primeira chamada para desligar o primeiro led
+add_alarm_in_ms(3000, turn_off_callback, NULL, false);
 }
 
 bool debounce_button() {
 static uint32_t last_press_time = 0;
 uint32_t current_time = to_ms_since_boot(get_absolute_time());
-if (current_time - last_press_time > 200) { // Debounce de 200ms
-last_press_time = current_time;
-return true;
-}
+    if(current_time - last_press_time > 200){ // Debounce de 200ms
+        last_press_time = current_time;
+        return true;
+    }
 return false;
 }
 
-
-int main() {
+int main(){
 inicializaPinos();
 
-while (true) {
-    if (gpio_get(PIN_BUTTON) == 0 && debounce_button()) {
-        start_led_sequence();
+while(true){
+    if(gpio_get(PIN_BUTTON)==0 && debounce_button()){
+        iniciar_fila_leds();
     }
+
     sleep_ms(10);
 }
 
